@@ -23,7 +23,7 @@ class Tuning():
             0, 1, 3, 64, 105, 181, 266, 284, 382, 469, 531,
             545, 551, 614, 712, 726, 810, 830, 846, 893, 983, 1024,
             1113, 1196, 1214, 1242, 1257, 1285, 1379, 1477, 1537, 1567, 1634,
-            1697, 1718, 1744, 1749, 1811, 1862, 1917, 1995, 2047]) # in seconds 
+            1697, 1718, 17441, 1749, 1811, 1862, 1917, 1995, 2047]) # in seconds 
 
         self.cue_type = None
         self.cue_time_nidq = None
@@ -32,6 +32,7 @@ class Tuning():
         self.laser_time_fpga = None
         self.spike_time = None
         self.spike_fr = None
+        self.spike_group = None
  
 
     def load_event(self, event_file): # read event time
@@ -81,11 +82,13 @@ class Tuning():
         n_unit = int(df['spike_id'].max())
         self.spike_time = np.zeros(n_unit, dtype=object)
         self.spike_fr = np.zeros(n_unit)
+        self.spike_group = np.zeros(n_unit, dtype=int)
         
         duration = (df['frame_id'].iloc[-1] - df['frame_id'].iloc[0]) / 25000
 
         for i_unit in range(n_unit):
             in_unit = df['spike_id'] == (i_unit + 1)
+            self.spike_group[i_unit] = df['group_id'][np.argwhere(in_unit.to_numpy())[0, 0]]
             self.spike_time[i_unit] = df['frame_id'][in_unit].to_numpy() / 25000
             self.spike_fr[i_unit] = sum(in_unit) / duration
 
@@ -142,7 +145,7 @@ class Tuning():
 
             ax010.errorbar(np.arange(12)*30, spike_angle_mean, yerr=spike_angle_se)
             fr_max = np.max(spike_angle_mean + spike_angle_se)
-            ax010.text(240, fr_max*0.8, 'neuron {}: {:.1f}Hz'.format(i_unit+1, self.spike_fr[i_unit]))
+            ax010.text(120, fr_max*0.05, 'neuron {} ({}): {:.1f} Hz'.format(i_unit+1, self.spike_group[i_unit], self.spike_fr[i_unit]))
 
             ax000.set_xlim(window_cue + np.array([0.5, -0.5]))
             ax000.set_ylim([0, len(cue_type)])
@@ -153,6 +156,8 @@ class Tuning():
             ax001.set_ylim([0, y_max])
             if i_unit == n_unit - 1:
                 ax001.set_xlabel('Time from cue onset (s)')
+            else:
+                ax001.set_xticklabels([])
             ax001.set_ylabel('Firing rate')
 
             ax010.set_xlim([0, 360])
