@@ -142,7 +142,7 @@ class Tuning():
 
             ax010.errorbar(np.arange(12)*30, spike_angle_mean, yerr=spike_angle_se)
             fr_max = np.max(spike_angle_mean + spike_angle_se)
-            ax010.text(300, fr_max*0.8, '{:.2f}'.format(self.spike_fr[i_unit]))
+            ax010.text(240, fr_max*0.8, 'neuron {}: {:.1f}Hz'.format(i_unit+1, self.spike_fr[i_unit]))
 
             ax000.set_xlim(window_cue + np.array([0.5, -0.5]))
             ax000.set_ylim([0, len(cue_type)])
