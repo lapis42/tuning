@@ -82,7 +82,7 @@ class Tuning():
         self.spike_time = np.zeros(n_unit, dtype=object)
         self.spike_fr = np.zeros(n_unit)
         
-        duration = (df['frameid'][-1] - df['frame_id'][0]) / 25000
+        duration = (df['frame_id'].iloc[-1] - df['frame_id'].iloc[0]) / 25000
 
         for i_unit in range(n_unit):
             in_unit = df['spike_id'] == (i_unit + 1)
@@ -125,7 +125,7 @@ class Tuning():
                 in_type = cue_type == (i_type * 30)
                 spike_num_temp = spike.count_spike(spike_time, cue_time[in_type],
                                                    window=[0, 0.5]) / 0.5
-                spike_mean[i_type] = np.mean(spike_num_temp)
+                spike_angle_mean[i_type] = np.mean(spike_num_temp)
                 spike_angle_se[i_type] = np.std(spike_num_temp) / np.sqrt(len(spike_num_temp))
 
             # plotting
@@ -141,16 +141,26 @@ class Tuning():
                 ax001.plot(psth['t'], psth['conv'][i_type, :], color=linecolor[i_type, :])
 
             ax010.errorbar(np.arange(12)*30, spike_angle_mean, yerr=spike_angle_se)
+            fr_max = np.max(spike_angle_mean + spike_angle_se)
+            ax010.text(300, fr_max*0.8, '{:.2f}'.format(self.spike_fr[i_unit]))
 
             ax000.set_xlim(window_cue + np.array([0.5, -0.5]))
             ax000.set_ylim([0, len(cue_type)])
             ax000.set_xticklabels([])
-            ax000.set_ylabel('{}: {:.2f}Hz'.format(i_unit+1, self.spike_fr[i_unit]))
+            ax000.set_ylabel('Trial')
 
             ax001.set_xlim(window_cue + np.array([0.5, -0.5]))
             ax001.set_ylim([0, y_max])
-            ax001.set_xlabel('Time from cue onset (s)')
+            if i_unit == n_unit - 1:
+                ax001.set_xlabel('Time from cue onset (s)')
             ax001.set_ylabel('Firing rate')
+
+            ax010.set_xlim([0, 360])
+            ax010.set_ylim([0, np.max(spike_angle_mean + spike_angle_se)])
+            if i_unit < n_unit - 1:
+                ax010.set_xticklabels([])
+            else:
+                ax001.set_xlabel('Cue direction')
 
         plt.show()
        
