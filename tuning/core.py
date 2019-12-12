@@ -160,7 +160,7 @@ class Tuning():
             if i_unit < n_unit - 1:
                 ax010.set_xticklabels([])
             else:
-                ax001.set_xlabel('Cue direction')
+                ax010.set_xlabel('Cue direction')
 
         plt.show()
        
