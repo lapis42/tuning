@@ -139,6 +139,10 @@ class Tuning():
             ax001 = f.add_subplot(gs00[1])
             ax010 = f.add_subplot(gs01[0])
 
+            rect0 = mpl.patches.Rectangle((0, 0), 0.5, len(cue_type), edgecolor='none', facecolor='cyan', alpha=0.2)
+            rect1 = mpl.patches.Rectangle((0, 0), 0.5, y_max, edgecolor='none', facecolor='cyan', alpha=0.2)
+            ax000.add_patch(rect0)
+            ax001.add_patch(rect1)
             for i_type in range(n_type):
                 ax000.plot(raster['x'][i_type], raster['y'][i_type], '.', color=linecolor[i_type, :])
                 ax001.plot(psth['t'], psth['conv'][i_type, :], color=linecolor[i_type, :])
@@ -167,6 +171,8 @@ class Tuning():
             else:
                 ax010.set_xlabel('Cue direction')
 
+            f.align_ylabels([ax000, ax001])
+
         plt.show()
        
 
@@ -185,6 +191,8 @@ def mystyle(xratio=1, yratio=1):
 
     mpl.rcParams['xtick.labelsize'] = 5
     mpl.rcParams['ytick.labelsize'] = 5
+    mpl.rcParams['xtick.direction'] = 'in'
+    mpl.rcParams['ytick.direction'] = 'in'
 
     mpl.rcParams['lines.linewidth'] = 0.75
     mpl.rcParams['lines.markersize'] = 1
