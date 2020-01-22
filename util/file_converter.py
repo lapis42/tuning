@@ -1,3 +1,4 @@
+#!/opt/localuser/anaconda3/bin python
 import os, time
 from datetime import datetime
 import numpy as np
@@ -9,7 +10,7 @@ from tkinter import filedialog
 def main():
     # select folder to convert
     tk = Tk()
-    foldername = filedialog.askdirectory(initialdir = "/home/kimd/data", title="Select folder (it will open all bin files in subfolders)")
+    foldername = filedialog.askdirectory(initialdir = "/mnt/data", title="Select folder (it will open all bin files in subfolders)")
     tk.destroy()
 
     if not foldername:
