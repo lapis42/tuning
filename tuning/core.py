@@ -93,6 +93,24 @@ class Tuning():
             self.spike_fr[i_unit] = sum(in_unit) / duration
 
 
+    def read_spike(self, spike_time, max_channel):
+        """
+        spike_time: numpy 1-d array
+        """
+
+        n_unit = len(spike_time)
+        self.spike_time = spike_time 
+        self.spike_fr = np.zeros(n_unit)
+        self.spike_group = max_channel 
+        
+        max_time = np.max([np.max(x) for x in spike_time])
+        min_time = np.min([np.min(x) for x in spike_time])
+        duration = max_time - min_time 
+
+        for i_unit in range(n_unit):
+            self.spike_fr[i_unit] = len(spike_time[i_unit]) / duration
+
+
     def plot(self):
         if self.spike_time is None:
             print('You have run load_spike()')
