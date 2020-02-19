@@ -122,7 +122,7 @@ class Tuning():
             print('You have to run load_ptb()')
             return
 
-        window_cue = [-0.8, 1.3] # window for plot in seconds
+        window_cue = [-0.8, 2.8] # window for plot in seconds
 
         cue_time = self.cue_time_fpga
         cue_type = self.cue_type
@@ -145,7 +145,7 @@ class Tuning():
             for i_type in range(n_type):
                 in_type = cue_type == (i_type * 30)
                 spike_num_temp = spike.count_spike(spike_time, cue_time[in_type],
-                                                   window=[0, 0.5]) / 0.5
+                                                   window=[0.5, 2]) / 0.5
                 spike_angle_mean[i_type] = np.mean(spike_num_temp)
                 spike_angle_se[i_type] = np.std(spike_num_temp) / np.sqrt(len(spike_num_temp))
 
@@ -157,8 +157,8 @@ class Tuning():
             ax001 = f.add_subplot(gs00[1])
             ax010 = f.add_subplot(gs01[0])
 
-            rect0 = mpl.patches.Rectangle((0, 0), 0.5, len(cue_type), edgecolor='none', facecolor='cyan', alpha=0.2)
-            rect1 = mpl.patches.Rectangle((0, 0), 0.5, y_max, edgecolor='none', facecolor='cyan', alpha=0.2)
+            rect0 = mpl.patches.Rectangle((0, 0), 2.0, len(cue_type), edgecolor='none', facecolor='cyan', alpha=0.2)
+            rect1 = mpl.patches.Rectangle((0, 0), 2.0, y_max, edgecolor='none', facecolor='cyan', alpha=0.2)
             ax000.add_patch(rect0)
             ax001.add_patch(rect1)
             for i_type in range(n_type):
