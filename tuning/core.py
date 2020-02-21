@@ -108,6 +108,24 @@ class Tuning():
         for i_unit in range(n_unit):
             self.spike_fr[i_unit] = spike_time[i_unit].size / duration
 
+    def read_spike(self, spike_time, max_channel):
+        """
+        spike_time: numpy 1-d array
+        """
+
+        n_unit = len(spike_time)
+        self.spike_time = spike_time 
+        self.spike_fr = np.zeros(n_unit)
+        self.spike_group = max_channel 
+        
+        max_time = np.max([np.max(x) for x in spike_time])
+        min_time = np.min([np.min(x) for x in spike_time])
+        duration = max_time - min_time 
+
+        for i_unit in range(n_unit):
+            self.spike_fr[i_unit] = len(spike_time[i_unit]) / duration
+
+
     def plot(self):
         if self.spike_time is None:
             print('You have run load_spike()')
@@ -142,7 +160,7 @@ class Tuning():
             for i_type in range(n_type):
                 in_type = cue_type == (i_type * 30)
                 spike_num_temp = spike.count_spike(spike_time, cue_time[in_type],
-                                                   window=[0, 0.5]) / 0.5
+                                                   window=[0.5, 2]) / 0.5
                 spike_angle_mean[i_type] = np.mean(spike_num_temp)
                 spike_angle_se[i_type] = np.std(spike_num_temp) / np.sqrt(len(spike_num_temp))
 
