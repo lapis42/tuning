@@ -92,6 +92,21 @@ class Tuning():
             self.spike_time[i_unit] = df['frame_id'][in_unit].to_numpy() / 25000
             self.spike_fr[i_unit] = sum(in_unit) / duration
 
+    def load_kilosort(self, spike_time, spike_group):
+        n_unit = spike_time.size
+        self.spike_time = spike_time
+        self.spike_fr = np.zeros(n_unit)
+        self.spike_group = spike_group
+        spkMin = np.Inf
+        spkMax = 0
+        for i in range(n_unit):
+            if spike_time[i].size > 0:
+                spkMin = np.min([spkMin, np.min(spike_time[i])])
+                spkMax = np.max([spkMax, np.max(spike_time[i])])
+        duration = spkMax - spkMin 
+
+        for i_unit in range(n_unit):
+            self.spike_fr[i_unit] = spike_time[i_unit].size / duration
 
     def plot(self):
         if self.spike_time is None:
@@ -104,7 +119,7 @@ class Tuning():
             print('You have to run load_ptb()')
             return
 
-        window_cue = [-0.8, 1.3] # window for plot in seconds
+        window_cue = [-0.8, 2.8] # window for plot in seconds
 
         cue_time = self.cue_time_fpga
         cue_type = self.cue_type
@@ -139,8 +154,8 @@ class Tuning():
             ax001 = f.add_subplot(gs00[1])
             ax010 = f.add_subplot(gs01[0])
 
-            rect0 = mpl.patches.Rectangle((0, 0), 0.5, len(cue_type), edgecolor='none', facecolor='cyan', alpha=0.2)
-            rect1 = mpl.patches.Rectangle((0, 0), 0.5, y_max, edgecolor='none', facecolor='cyan', alpha=0.2)
+            rect0 = mpl.patches.Rectangle((0, 0), 2.0, len(cue_type), edgecolor='none', facecolor='cyan', alpha=0.2)
+            rect1 = mpl.patches.Rectangle((0, 0), 2.0, y_max, edgecolor='none', facecolor='cyan', alpha=0.2)
             ax000.add_patch(rect0)
             ax001.add_patch(rect1)
             for i_type in range(n_type):
