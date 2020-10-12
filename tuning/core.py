@@ -88,6 +88,8 @@ class Tuning():
 
         for i_unit in range(n_unit):
             in_unit = df['spike_id'] == (i_unit + 1)
+            if sum(in_unit) == 0:
+                continue
             self.spike_group[i_unit] = df['group_id'][np.argwhere(in_unit.to_numpy())[0, 0]]
             self.spike_time[i_unit] = df['frame_id'][in_unit].to_numpy() / 25000
             self.spike_fr[i_unit] = sum(in_unit) / duration
@@ -126,7 +128,7 @@ class Tuning():
             self.spike_fr[i_unit] = len(spike_time[i_unit]) / duration
 
 
-    def plot(self):
+    def plot(self, cue_duration=0.5):
         if self.spike_time is None:
             print('You have run load_spike()')
             return
@@ -137,7 +139,8 @@ class Tuning():
             print('You have to run load_ptb()')
             return
 
-        window_cue = [-0.8, 2.8] # window for plot in seconds
+        WINDOW = np.array([0, cue_duration])
+        window_cue = WINDOW + np.array([-0.8, 0.8]) # window for plot in seconds
 
         cue_time = self.cue_time_fpga
         cue_type = self.cue_type
@@ -151,6 +154,8 @@ class Tuning():
             
         for i_unit in range(n_unit):
             spike_time = self.spike_time[i_unit]
+            if isinstance(spike_time, int):
+                continue
             raster, psth = spike.plot(spike_time, cue_time, cue_type,
                                       window=window_cue, resolution=2)
             
@@ -159,8 +164,7 @@ class Tuning():
             spike_angle_se = np.zeros(n_type)
             for i_type in range(n_type):
                 in_type = cue_type == (i_type * 30)
-                spike_num_temp = spike.count_spike(spike_time, cue_time[in_type],
-                                                   window=[0.5, 2]) / 0.5
+                spike_num_temp = spike.count_spike(spike_time, cue_time[in_type], window=[0.1, WINDOW[1]]) / (WINDOW[1] - 0.1)
                 spike_angle_mean[i_type] = np.mean(spike_num_temp)
                 spike_angle_se[i_type] = np.std(spike_num_temp) / np.sqrt(len(spike_num_temp))
 
@@ -172,8 +176,8 @@ class Tuning():
             ax001 = f.add_subplot(gs00[1])
             ax010 = f.add_subplot(gs01[0])
 
-            rect0 = mpl.patches.Rectangle((0, 0), 2.0, len(cue_type), edgecolor='none', facecolor='cyan', alpha=0.2)
-            rect1 = mpl.patches.Rectangle((0, 0), 2.0, y_max, edgecolor='none', facecolor='cyan', alpha=0.2)
+            rect0 = mpl.patches.Rectangle((0, 0), WINDOW[1] - WINDOW[0], len(cue_type), edgecolor='none', facecolor='cyan', alpha=0.2)
+            rect1 = mpl.patches.Rectangle((0, 0), WINDOW[1] - WINDOW[0], y_max, edgecolor='none', facecolor='cyan', alpha=0.2)
             ax000.add_patch(rect0)
             ax001.add_patch(rect1)
             for i_type in range(n_type):

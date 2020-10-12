@@ -1,18 +1,13 @@
 #!/opt/localuser/anaconda3/bin python
-import os, time
+import os, time, argparse
 from datetime import datetime
 import numpy as np
 import pandas as pd
 from tkinter import *
 from tkinter import filedialog
 
-
-def main():
+def main(foldername):
     # select folder to convert
-    tk = Tk()
-    foldername = filedialog.askdirectory(initialdir = "/mnt/data", title="Select folder (it will open all bin files in subfolders)")
-    tk.destroy()
-
     if not foldername:
         print('No folder selected')
         return
@@ -20,11 +15,25 @@ def main():
     # search binary files
     bin_file = [os.path.join(fd, fn) for fd, _, files in os.walk(foldername) for fn in files if fn == 'mua.bin' and not 'kilosort' in fd]
     bin_file.sort(key=lambda x: os.path.getmtime(x))
-    n_file = len(bin_file)
 
     # mkdir
     save_path = os.path.join(foldername, 'kilosort')
     save_file = os.path.join(save_path, 'mua.bin')
+
+    # select file
+    while 1:
+        n_file = len(bin_file)
+        for i in range(n_file):
+            print('{}: {}'.format(i, bin_file[i]))
+
+        str = input('s(start), number (delete the file), q(quit): ')
+        if str == 's':
+            break 
+        elif str.isnumeric():
+            del bin_file[int(str)]
+        elif str == 'q':
+            return
+
 
     if not os.path.isdir(save_path):
         os.mkdir(save_path)
@@ -55,4 +64,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('foldername', type=str, help='foldername')
+    arg = parser.parse_args()
+    main(arg.foldername)
