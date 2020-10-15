@@ -28,6 +28,8 @@ class Tuning():
         self.cue_type = None
         self.cue_time_nidq = None
         self.cue_time_fpga = None
+        self.cue_duration = None
+        self.iti_duration = None
         self.laser_time_nidq = None
         self.laser_time_fpga = None
         self.spike_time = None
@@ -73,6 +75,9 @@ class Tuning():
             self.cue_type = ptb_data['result'].directions
         else:
             self.cue_type = ptb_data['directions']
+
+        self.cue_duration = ptb_data['params'].stimulusDuration
+        self.iti_duration = ptb_data['params'].itiStart
 
 
     def load_spike(self, spike_file):
@@ -128,7 +133,7 @@ class Tuning():
             self.spike_fr[i_unit] = len(spike_time[i_unit]) / duration
 
 
-    def plot(self, cue_duration=0.5):
+    def plot(self):
         if self.spike_time is None:
             print('You have run load_spike()')
             return
@@ -139,8 +144,8 @@ class Tuning():
             print('You have to run load_ptb()')
             return
 
-        WINDOW = np.array([0, cue_duration])
-        window_cue = WINDOW + np.array([-0.8, 0.8]) # window for plot in seconds
+        WINDOW = np.array([0, self.cue_duration])
+        window_cue = WINDOW + np.array([-self.iti_duration-0.3, self.iti_duration+0.3]) # window for plot in seconds
 
         cue_time = self.cue_time_fpga
         cue_type = self.cue_type
@@ -188,12 +193,12 @@ class Tuning():
             fr_max = np.max(spike_angle_mean + spike_angle_se)
             ax010.text(120, fr_max*0.05, 'neuron {} ({}): {:.1f} Hz'.format(i_unit+1, self.spike_group[i_unit], self.spike_fr[i_unit]))
 
-            ax000.set_xlim(window_cue + np.array([0.5, -0.5]))
+            ax000.set_xlim(window_cue + np.array([0.3, -0.3]))
             ax000.set_ylim([0, len(cue_type)])
             ax000.set_xticklabels([])
             ax000.set_ylabel('Trial')
 
-            ax001.set_xlim(window_cue + np.array([0.5, -0.5]))
+            ax001.set_xlim(window_cue + np.array([0.3, -0.3]))
             ax001.set_ylim([0, y_max])
             if i_unit == n_unit - 1:
                 ax001.set_xlabel('Time from cue onset (s)')
