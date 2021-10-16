@@ -85,7 +85,7 @@ def plot(time_spike, time_event, type_event,
     
     return {'x': x, 'y': y, 'type': type_unique}, {'t': t, 'bar': bar, 'conv': conv, 'type': type_unique}
 
-def get_latency(spike, event_onset, event_offset, duration=0.08, offset=0.4, min_latency=0.02, prob=0.05):
+def get_latency(spike, event_onset, event_offset, duration=0.08, offset=0.3, min_latency=0.02, prob=0.05):
     assert(len(event_onset) == len(event_offset))
     n_event = len(event_onset)
 
@@ -115,73 +115,12 @@ def get_latency(spike, event_onset, event_offset, duration=0.08, offset=0.4, min
                 in_base = (spike >= base[i_base]) & (spike < base[i_base + 1])
                 spike_base.append(spike[in_base] - base[i_base])
 
-    spike_bin = np.concatenate([spike_event, spike_base])
 
-    # shuffling
-    def count(spike_event, spike_base):
-        n_event = len(spike_event)
-        n_base = len(spike_base)
-            
-        spike_event_all = np.concatenate(spike_event)
-        spike_event_count = np.ones_like(spike_event_all) / n_event
-        spike_base_all = np.concatenate(spike_base)
-        spike_base_count = -np.ones_like(spike_base_all) / n_base
+    spike_event_all = np.sort(np.concatenate(spike_event))
+    count_event = np.arange(len(spike_event_all)) / len(spike_event)
+    spike_base_all = np.sort(np.concatenate(spike_base))
+    count_base = np.arange(len(spike_base_all)) / len(spike_base)
 
-        spike_all = np.concatenate([spike_event_all, spike_base_all])
-        count_all = np.concatenate([spike_event_count, spike_base_count])
-        idx = np.argsort(spike_all)
-
-        t = spike_all[idx]
-        y = np.cumsum(count_all[idx])
-            
-        return t, y
-
-    def shuffle(spike_bin, n_event):
-        sh_idx = np.random.permutation(len(spike_bin))
-            
-        spike_event = spike_bin[sh_idx[:n_event]]
-        spike_base = spike_bin[sh_idx[n_event:]]
-        return count(spike_event, spike_base)
-
-    t, y = count(spike_event, spike_base)
-
-    ys = np.zeros(1000, dtype=object)
-    for i in range(1000):
-        _, ys[i] = shuffle(spike_bin, n_event)
-    yss = np.stack(ys, axis=0)
-    ysm = np.mean(yss, axis=0)
-    ysu = np.quantile(yss, (1-prob), axis=0)
-    ysl = np.quantile(yss, prob, axis=0)
-
-    in_t = t > min_latency
-    if sum(in_t) > 20:
-        t_temp = t[in_t]
-        up_idx = y[in_t] > ysu[in_t]
-        up = np.where(up_idx[:-9] & up_idx[1:-8] & up_idx[2:-7] & 
-                up_idx[3:-6] & up_idx[4:-5] & up_idx[5:-4] &
-                up_idx[6:-3] & up_idx[7:-2] & up_idx[8:-1] &
-                up_idx[9:])[0]
-        if len(up) > 0:
-            latency_up = t_temp[up[0]]
-        else:
-            latency_up = None
-
-        down_idx = y[in_t] < ysl[in_t]
-        down = np.where(down_idx[:-9] & down_idx[1:-8] & down_idx[2:-7] & 
-                down_idx[3:-6] & down_idx[4:-5] & down_idx[5:-4] &
-                down_idx[6:-3] & down_idx[7:-2] & down_idx[8:-1] &
-                down_idx[9:])[0]
-        if len(down) > 0:
-            latency_down = t_temp[down[0]]
-        else:
-            latency_down = None
-
-        if (latency_up is not None) and (latency_down is not None):
-            if latency_up < latency_down:
-                latency_down = None
-            else:
-                latency_up = None
-
-
-    out = {'time': t, 'event': y, 'base_up': ysu, 'base_mean': ysm, 'base_down': ysl, 'latency_up': latency_up, 'latency_down': latency_down}
+    out = {'time_event': spike_event_all, 'count_event': count_event, 
+           'time_base': spike_base_all, 'count_base': count_base}
     return out

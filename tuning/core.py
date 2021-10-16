@@ -113,10 +113,14 @@ class Tuning():
 
         if 'result' in ptb_data.keys():
             self.cue_type = ptb_data['result'].directions
-        else:
+        elif 'directions' in ptb_data.keys() :
             self.cue_type = ptb_data['directions']
 
-        self.cue_duration = ptb_data['params'].stimulusDuration
+        if 'stimulusDuration' in dir(ptb_data['params']):
+            self.cue_duration = ptb_data['params'].stimulusDuration
+        else:
+            self.cue_duration = ptb_data['params'].ifi
+
         self.iti_duration = ptb_data['params'].itiStart
 
 
@@ -180,7 +184,7 @@ class Tuning():
         elif self.cue_time_fpga is None:
             print('You have to run load_event()')
             return
-        elif self.cue_type is None:
+        elif self.iti_duration is None:
             print('You have to run load_ptb()')
             return
 
@@ -189,14 +193,23 @@ class Tuning():
 
         cue_time = self.cue_time_fpga
         cue_offset = self.cue_time_off_fpga
-        cue_type = self.cue_type
+        if self.cue_type is None:
+            cue_type = np.ones_like(cue_time)
+        else:
+            cue_type = self.cue_type
         n_type = len(np.unique(cue_type)) # cue types
         n_unit = len(self.spike_time)
 
-        mystyle(1, n_unit/2)
-        linecolor = plt.cm.gist_ncar(np.linspace(0, 0.9, n_type))[:, 0:3]
-        f = plt.figure()
-        gs0 = gridspec.GridSpec(n_unit, 3, wspace = 0.3, hspace=0.3)
+        if n_type == 1:
+            linecolor = np.array([[0, 0, 0]])
+            mystyle(2/3, n_unit/2)
+            f = plt.figure()
+            gs0 = gridspec.GridSpec(n_unit, 2, wspace = 0.3, hspace=0.3)
+        else:
+            linecolor = plt.cm.gist_ncar(np.linspace(0, 0.9, n_type))[:, 0:3]
+            mystyle(1, n_unit/2)
+            f = plt.figure()
+            gs0 = gridspec.GridSpec(n_unit, 3, wspace = 0.3, hspace=0.3)
             
         for i_unit in range(n_unit):
             spike_time = self.spike_time[i_unit]
@@ -205,14 +218,15 @@ class Tuning():
             raster, psth = spike.plot(spike_time, cue_time, cue_type,
                                       window=window_cue, resolution=5)
             
-            # get mean and std firing rate for each stimulus type
-            spike_angle_mean = np.zeros(n_type)
-            spike_angle_se = np.zeros(n_type)
-            for i_type in range(n_type):
-                in_type = cue_type == (i_type * 30)
-                spike_num_temp = spike.count_spike(spike_time, cue_time[in_type], window=[0.1, WINDOW[1]]) / (WINDOW[1] - 0.1)
-                spike_angle_mean[i_type] = np.mean(spike_num_temp)
-                spike_angle_se[i_type] = np.std(spike_num_temp) / np.sqrt(len(spike_num_temp))
+            if n_type > 1:
+                # get mean and std firing rate for each stimulus type
+                spike_angle_mean = np.zeros(n_type)
+                spike_angle_se = np.zeros(n_type)
+                for i_type in range(n_type):
+                    in_type = cue_type == (i_type * 30)
+                    spike_num_temp = spike.count_spike(spike_time, cue_time[in_type], window=[0.1, WINDOW[1]]) / (WINDOW[1] - 0.1)
+                    spike_angle_mean[i_type] = np.mean(spike_num_temp)
+                    spike_angle_se[i_type] = np.std(spike_num_temp) / np.sqrt(len(spike_num_temp))
 
             # get cumulative plot and latency
             c = spike.get_latency(spike_time, cue_time, cue_offset, prob=0.01)
@@ -220,12 +234,17 @@ class Tuning():
             # plotting
             y_max = np.max(np.concatenate([psth['conv'].flatten() for i in range(n_type)]))
             gs00 = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs0[i_unit, 0], hspace=0.05)
-            gs01 = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs0[i_unit, 1])
-            gs02 = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs0[i_unit, 2])
             ax000 = f.add_subplot(gs00[0])
             ax001 = f.add_subplot(gs00[1])
-            ax010 = f.add_subplot(gs01[0])
-            ax020 = f.add_subplot(gs02[0])
+
+            if n_type > 1:
+                gs01 = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs0[i_unit, 1])
+                ax010 = f.add_subplot(gs01[0])
+                gs02 = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs0[i_unit, 2])
+                ax020 = f.add_subplot(gs02[0])
+            else:
+                gs02 = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=gs0[i_unit, 1])
+                ax020 = f.add_subplot(gs02[0])
 
             rect0 = mpl.patches.Rectangle((0, 0), WINDOW[1] - WINDOW[0], len(cue_type), edgecolor='none', facecolor='cyan', alpha=0.2)
             rect1 = mpl.patches.Rectangle((0, 0), WINDOW[1] - WINDOW[0], y_max, edgecolor='none', facecolor='cyan', alpha=0.2)
@@ -235,27 +254,15 @@ class Tuning():
                 ax000.plot(raster['x'][i_type], raster['y'][i_type], '.', color=linecolor[i_type, :])
                 ax001.plot(psth['t'], psth['conv'][i_type, :], color=linecolor[i_type, :])
 
-            ax010.errorbar(np.arange(12)*30, spike_angle_mean, yerr=spike_angle_se)
-            fr_max = np.max(spike_angle_mean + spike_angle_se)
-            ax010.text(20, fr_max*0.05, 'neuron {} ({}): {:.1f} Hz'.format(i_unit+1, self.spike_group[i_unit], self.spike_fr[i_unit]), fontsize=4)
+            if n_type > 1:
+                ax010.errorbar(np.arange(12)*30, spike_angle_mean, yerr=spike_angle_se)
+                fr_max = np.max(spike_angle_mean + spike_angle_se)
 
-            ax020.plot(c['time'], c['event'], 'b')
-            ax020.plot(c['time'], c['base_mean'], color=[0.5, 0.5, 0.5])
-            ax020.plot(c['time'], c['base_up'], ':', color=[0.5, 0.5, 0.5])
-            ax020.plot(c['time'], c['base_down'], ':', color=[0.5, 0.5, 0.5])
-            cum_max = np.max(np.concatenate([c['event'], c['base_up']]))
-            cum_min = np.min(np.concatenate([c['event'], c['base_down']]))
-            y_range = cum_max - cum_min
-            y_lim = [cum_min-0.1*y_range, cum_max+0.1*y_range]
-
-            if c['latency_up'] is not None:
-                ax020.plot(np.repeat(c['latency_up'], 2), y_lim, 'r:')
-                ax020.text(0.02, 0.05*(y_lim[1] - y_lim[0]) + y_lim[0], 'latency: {:.1f} ms'.format(c['latency_up']*1000), fontsize=4)
-
-            if c['latency_down'] is not None:
-                ax020.plot(np.repeat(c['latency_down'], 2), y_lim, 'r:')
-                ax020.text(0.02, 0.05*(y_lim[1] - y_lim[0]) + y_lim[0], 'latency: {:.1f} ms'.format(c['latency_down']*1000), fontsize=4)
-
+            ax020.plot(c['time_event'], c['count_event'], 'b')
+            ax020.plot(c['time_base'], c['count_base'], color=[0.5, 0.5, 0.5])
+            cum_max = ax020.get_ylim()[1]
+            y_lim = [0, cum_max]
+            ax020.text(0.02, 0.95*(y_lim[1] - y_lim[0]) + y_lim[0], 'neuron {} ({}): {:.1f} Hz'.format(i_unit+1, self.spike_group[i_unit], self.spike_fr[i_unit]), fontsize=4)
             ax020.set_xlim([0, 0.08])
             ax020.set_ylim(y_lim)
             if i_unit < n_unit - 1:
@@ -264,7 +271,7 @@ class Tuning():
             ax000.set_xlim(window_cue + np.array([0.3, -0.3]))
             ax000.set_ylim([0, len(cue_type)])
             ax000.set_xticklabels([])
-            #ax000.set_ylabel('Trial')
+            ax000.set_ylabel('Trial')
 
             ax001.set_xlim(window_cue + np.array([0.3, -0.3]))
             ax001.set_ylim([0, y_max])
@@ -272,17 +279,17 @@ class Tuning():
                 ax001.set_xlabel('Time from cue onset (s)')
             else:
                 ax001.set_xticklabels([])
-            #ax001.set_ylabel('Firing rate')
+            ax001.set_ylabel('Firing rate')
 
-            ax010.set_xlim([0, 360])
-            ax010.set_ylim([0, np.max(spike_angle_mean + spike_angle_se)])
-            if i_unit < n_unit - 1:
-                ax010.set_xticklabels([])
-            else:
-                ax010.set_xlabel('Cue direction')
+            if n_type > 1:
+                ax010.set_xlim([0, 360])
+                ax010.set_ylim([0, np.max(spike_angle_mean + spike_angle_se)])
+                if i_unit < n_unit - 1:
+                    ax010.set_xticklabels([])
+                else:
+                    ax010.set_xlabel('Cue direction')
 
             f.align_ylabels([ax000, ax001])
-
         return f
 
     def plot_laser(self):
@@ -331,25 +338,12 @@ class Tuning():
             ax000.plot(raster['x'][0], raster['y'][0], 'k.')
             ax001.plot(psth['t'], psth['bar'][0, :])
 
-            ax010.plot(c['time'], c['event'], 'b')
-            ax010.plot(c['time'], c['base_mean'], color=[0.5, 0.5, 0.5])
-            ax010.plot(c['time'], c['base_up'], ':', color=[0.5, 0.5, 0.5])
-            ax010.plot(c['time'], c['base_down'], ':', color=[0.5, 0.5, 0.5])
-            cum_max = np.max(np.concatenate([c['event'], c['base_up']]))
-            cum_min = np.min(np.concatenate([c['event'], c['base_down']]))
-            y_range = cum_max - cum_min
-            y_lim = [cum_min-0.1*y_range, cum_max+0.1*y_range]
+            ax010.plot(c['time_event'], c['count_event'], 'b')
+            ax010.plot(c['time_base'], c['count_base'], color=[0.5, 0.5, 0.5])
+            cum_max = ax010.get_ylim()[1]
+            y_lim = [0, cum_max]
 
             ax010.text(0.001, 0.95*(y_lim[1] - y_lim[0]) + y_lim[0], 'neuron {} ({}): {:.1f} Hz'.format(i_unit+1, self.spike_group[i_unit], self.spike_fr[i_unit]), fontsize=4)
-
-            if c['latency_up'] is not None:
-                ax010.plot(np.repeat(c['latency_up'], 2), y_lim, 'r:')
-                ax010.text(0.001, 0.05*(y_lim[1] - y_lim[0]) + y_lim[0], 'latency: {:.1f} ms'.format(c['latency_up']*1000), fontsize=4)
-
-            if c['latency_down'] is not None:
-                ax010.plot(np.repeat(c['latency_down'], 2), y_lim, 'r:')
-                ax010.text(0.001, 0.05*(y_lim[1] - y_lim[0]) + y_lim[0], 'latency: {:.1f} ms'.format(c['latency_down']*1000), fontsize=4)
-
             ax010.set_xlim([0, 0.01])
             ax010.set_ylim(y_lim)
             if i_unit < n_unit - 1:
